@@ -1158,7 +1158,7 @@ log_and_update:
 /* Fingerprint SYN or SYN+ACK. */
 
 struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
-                                struct packet_flow* f) {
+                                struct packet_flow* f, char* pkt_sig) {
 
   struct tcp_sig* sig;
   struct tcp_sig_record* m;
@@ -1173,41 +1173,52 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
   if (pk->tcp_type == TCP_SYN && pk->win == SPECIAL_WIN &&
       pk->mss == SPECIAL_MSS) f->sendsyn = 1;
 
-  if (to_srv) 
-    start_observation(f->sendsyn ? "sendsyn probe" : "syn", 4, 1, f);
-  else
-    start_observation(f->sendsyn ? "sendsyn response" : "syn+ack", 4, 0, f);
-
+  if (to_srv)
+    //start_observation(f->sendsyn ? "sendsyn probe" : "syn", 4, 1, f);
+  /*else
+    start_observation(f->sendsyn ? "sendsyn response" : "syn+ack", 4, 0, f);*/
+  
   tcp_find_match(to_srv, sig, 0, f->syn_mss);
 
   if ((m = sig->matched)) {
 
-    OBSERVF((m->class_id == -1 || f->sendsyn) ? "app" : "os", "%s%s%s",
+    /*OBSERVF((m->class_id == -1 || f->sendsyn) ? "app" : "os", "%s%s%s",
             fp_os_names[m->name_id], m->flavor ? " " : "",
-            m->flavor ? m->flavor : (u8*)"");
+            m->flavor ? m->flavor : (u8*)"");*/
+    if(!(m->class_id == -1 || f->sendsyn)){
+	    //SAYF("  %s %s\n",fp_os_names[m->name_id],m->flavor ? m->flavor : (u8*)"");
+    }
 
   } else {
 
-    add_observation_field("os", NULL);
+    //add_observation_field("os", NULL);
 
   }
 
   if (m && m->bad_ttl) {
 
-    OBSERVF("dist", "<= %u", sig->dist);
+    //OBSERVF("dist", "<= %u", sig->dist);
 
   } else {
 
-    if (to_srv) f->client->distance = sig->dist;
-    else f->server->distance = sig->dist;
+  if (to_srv) f->client->distance = sig->dist;
+  else f->server->distance = sig->dist;
     
-    OBSERVF("dist", "%u", sig->dist);
+  //OBSERVF("dist", "%u", sig->dist);
 
   }
 
-  add_observation_field("params", dump_flags(pk, sig));
+  //add_observation_field("params", dump_flags(pk, sig));
 
-  add_observation_field("raw_sig", dump_sig(pk, sig, f->syn_mss));
+  //add_observation_field("raw_sig", dump_sig(pk, sig, f->syn_mss));
+
+  //pkt_sig = dump_sig(pk, sig, f->syn_mss);
+ 
+  sprintf(pkt_sig,"src:%s dst:%s sig:%s\n",addr_to_str(pk->src, f->client->ip_ver),
+                    addr_to_str(pk->dst, f->client->ip_ver),
+		    dump_sig(pk, sig, f->syn_mss));
+
+  //SAYF("%s",pkt_sig);
 
   if (pk->tcp_type == TCP_SYN) f->syn_mss = pk->mss;
 
@@ -1318,7 +1329,7 @@ void check_ts_tcp(u8 to_srv, struct packet_data* pk, struct packet_flow* f) {
   up_min = pk->ts1 / freq / 60;
   up_mod_days = 0xFFFFFFFF / (freq * 60 * 60 * 24);
 
-  start_observation("uptime", 2, to_srv, f);
+  //start_observation("uptime", 2, to_srv, f);
 
   if (to_srv) {
 
@@ -1332,10 +1343,11 @@ void check_ts_tcp(u8 to_srv, struct packet_data* pk, struct packet_flow* f) {
 
   }
 
-  OBSERVF("uptime", "%u days %u hrs %u min (modulo %u days)",
+  /*OBSERVF("uptime", "%u days %u hrs %u min (modulo %u days)",
           (up_min / 60 / 24), (up_min / 60) % 24, up_min % 60,
           up_mod_days);
 
   OBSERVF("raw_freq", "%.02f Hz", ffreq);
+  */
 
 }

@@ -1,5 +1,11 @@
 import p0fmod
-p0fmod.set_iface("eth0")
-p0fmod.set_api_sock("/tmp/sock")
+p0fmod.set_iface("ens4")
+p0fmod.set_fp_file("./p0f.fp")
+#p0fmod.set_api_sock("/tmp/sock")
 #p0fmod.en_daemon_mode()
+p0fmod.set_read_file("../multi_directs.pcap")
+#p0fmod.read_config("./p0f.fp")
+#p0fmod.prepare_pcap()
+#p0fmod.run().prepare_bpf()
+#p0fmod.run().offline_event_loop()
 p0fmod.start_p0f()

@@ -105,6 +105,8 @@ static u8 set_promisc;                  /* Use promiscuous mode?              */
          
 static pcap_t *pt;                      /* PCAP capture thingy                */
 
+static pcap_t *rt_pt;			/* return PCAP capture thigy	      */
+
 s32 link_type;                          /* PCAP link type                     */
 
 u32 hash_seed;                          /* Hash seed                          */
@@ -1003,16 +1005,26 @@ poll_again:
 
 static void offline_event_loop(void) {
 
+  char *sig_list;
+  int pkt_cnt=0;
+  
   if (!daemon_mode) 
     SAYF("[+] Processing capture data.\n\n");
-
   while (!stop_soon)  {
 
-    if (pcap_dispatch(pt, -1, (pcap_handler)parse_packet, 0) <= 0) return;
+    //SAYF("\nstart analyze packet\n");
+    //if (pcap_dispatch(pt, 1, (pcap_handler)parse_packet, 0) <= 0) return;
+    if (pcap_dispatch(pt, 1, (pcap_handler)parse_packet, 0) <= 0){
+            return;
+    }
+    else{
+            //SAYF("\n %d packet done!\n",packet_cnt);
+    }
 
   }
 
   WARN("User-initiated shutdown.");
+  //return pt;
 
 }
 
@@ -1093,7 +1105,8 @@ int run(){
   signal(SIGINT, abort_handler);
   signal(SIGTERM, abort_handler);
 
-  if (read_file) offline_event_loop(); else live_event_loop();
+  if (read_file) /*rt_pt =*/offline_event_loop(); else live_event_loop();
+  //if (pcap_dispatch(pt, 1, (pcap_handler)parse_packet, 0) <= 0) return;
 
   if (!daemon_mode)
     printf("\nAll done. Processed %llu packets.\n", packet_cnt);
@@ -1440,8 +1453,10 @@ static PyObject* p0fmod_start_p0f(PyObject *self,PyObject *args){
    // -6 - [!] Consider specifying switch_user in daemon mode (see README)
 
 	int ret = 0;
+	//PyObject *p_list;
 	ret = run();
         return Py_BuildValue("i",ret);
+	//return *p_list;
 }
 
 
@@ -1570,6 +1585,10 @@ static PyObject* p0fmod_ck_response(PyObject *self,PyObject *args){
         return Py_BuildValue("i",ret);
 }
 
+/*static PyObject* p0fmod_read_sig(PyObject *self,PyObject *args){
+	return Py_BuildValue("i",ret);
+}*/
+
 static PyMethodDef p0fmod_methods[] = {
  //"PythonName"     C-function Name, 	argument presentation, description
  {"set_fp_file",    p0fmod_set_fp_file,    	   METH_VARARGS,   "List Interfaces"}, // -f
@@ -1586,10 +1605,13 @@ static PyMethodDef p0fmod_methods[] = {
  {"set_max_hosts",p0fmod_set_max_hosts,    METH_VARARGS,   "Max no. of Hosts."}, // -m
  {"set_conn_max_age",p0fmod_set_conn_max_age,    METH_VARARGS,   "timeout for collecting signarures for a connection"},
  {"set_host_idle_limit",p0fmod_set_host_idle_limit,    METH_VARARGS,   "timeout for purging idle hosts from in-memory cache"},
- 
+ {"read_config",read_config,METH_VARARGS,"read config"},
+ {"prepare_pcap",prepare_pcap,METH_NOARGS,"read pcap file"},
+
  {"start_p0f",    p0fmod_start_p0f,    METH_VARARGS,   "Start Passive OS Fingerprinting"},
  {"mk_query",    p0fmod_mk_query,    METH_VARARGS,   "Query p0f via api_sock"},
  {"ck_response",    p0fmod_ck_response,    METH_VARARGS,   "p0f Response via api_sock"},
+ //{"read_sig",	p0fmod_read_sig,	METH_VARARGS,	"Read tcp Signatures"},
  {NULL , NULL , 0 , NULL}        /* Sentinel */
 };
 

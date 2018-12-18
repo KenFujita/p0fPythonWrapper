@@ -850,15 +850,15 @@ static void fingerprint_http(u8 to_srv, struct packet_flow* f) {
 
   http_find_match(to_srv, &f->http_tmp, 0);
 
-  start_observation(to_srv ? "http request" : "http response", 4, to_srv, f);
+ // start_observation(to_srv ? "http request" : "http response", 4, to_srv, f);
 
   if ((m = f->http_tmp.matched)) {
 
-    OBSERVF((m->class_id < 0) ? "app" : "os", "%s%s%s",
+    /*OBSERVF((m->class_id < 0) ? "app" : "os", "%s%s%s",
             fp_os_names[m->name_id], m->flavor ? " " : "",
-            m->flavor ? m->flavor : (u8*)"");
+            m->flavor ? m->flavor : (u8*)"");*/
 
-  } else add_observation_field("app", NULL);
+  } //else add_observation_field("app", NULL);
 
   if (f->http_tmp.lang && isalpha(f->http_tmp.lang[0]) &&
       isalpha(f->http_tmp.lang[1]) && !isalpha(f->http_tmp.lang[2])) {
@@ -873,14 +873,14 @@ static void fingerprint_http(u8 to_srv, struct packet_flow* f) {
     }
 
     if (!languages[lh][pos]) add_observation_field("lang", NULL);
-      else add_observation_field("lang", 
-           (lang = (u8*)languages[lh][pos + 1]));
+      /*else add_observation_field("lang", 
+           (lang = (u8*)languages[lh][pos + 1]));*/
 
-  } else add_observation_field("lang", (u8*)"none");
+  } else //add_observation_field("lang", (u8*)"none");
 
-  add_observation_field("params", dump_flags(&f->http_tmp, m));
+  //add_observation_field("params", dump_flags(&f->http_tmp, m));
 
-  add_observation_field("raw_sig", dump_sig(to_srv, &f->http_tmp));
+  //add_observation_field("raw_sig", dump_sig(to_srv, &f->http_tmp));
 
   score_nat(to_srv, f);
 
