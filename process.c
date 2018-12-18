@@ -1160,7 +1160,7 @@ static void flow_dispatch(struct packet_data* pk) {
   char* fp_sig;
   char* request;
 
-  fp_sig = (char *)malloc(1024);
+  fp_sig = (char *)malloc(2048);
   if(fp_sig == NULL) return;
 
 
@@ -1215,7 +1215,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       }
 
-      SAYF("%s\n",fp_sig);
+      //SAYF("%s\n",fp_sig);
 
       break;
 
@@ -1262,7 +1262,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       // SYN from real OS, SYN+ACK from a client stack. Weird, but whatever. 
 
-      SAYF("%s\n",fp_sig);
+      //SAYF("%s\n",fp_sig);
       if (!tsig) {
 
         destroy_flow(f);
@@ -1342,10 +1342,9 @@ static void flow_dispatch(struct packet_data* pk) {
 
         check_ts_tcp(1, pk, f);
 
-        if((pk->tcp_type == (TCP_PUSH | TCP_ACK)) && f->request){
-            SAYF("%s\n",f->request);
-	    //SAYF("  ---- request ----\n");
-        }
+        if(f->request != NULL)
+	  sprintf(fp_sig,"%s%s\n",fp_sig,f->request);
+	  //SAYF("%s\n",f->request);
 
         f->next_cli_seq += pk->pay_len;
 
@@ -1404,8 +1403,11 @@ static void flow_dispatch(struct packet_data* pk) {
       WARN("Huh. Unexpected packet type 0x%02x in flow_dispatch().", pk->tcp_type);
 
   }
-  //SAYF("%s",fp_sig);
-  free(fp_sig);
+
+  if(fp_sig != NULL){
+    SAYF("%s",fp_sig);
+    free(fp_sig);
+  }
 
 }
 

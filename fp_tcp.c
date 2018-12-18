@@ -1163,6 +1163,12 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
   struct tcp_sig* sig;
   struct tcp_sig_record* m;
 
+  char *srcIP,*dstIP,*os_name;
+
+  srcIP = (char *)malloc(32);
+  dstIP = (char *)malloc(32);
+  os_name = (char *)malloc(32);
+
   sig = ck_alloc(sizeof(struct tcp_sig));
   packet_to_sig(pk, sig);
 
@@ -1173,8 +1179,13 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
   if (pk->tcp_type == TCP_SYN && pk->win == SPECIAL_WIN &&
       pk->mss == SPECIAL_MSS) f->sendsyn = 1;
 
-  if (to_srv)
+  if (to_srv){
     //start_observation(f->sendsyn ? "sendsyn probe" : "syn", 4, 1, f);
+    /*SAYF(".-[ %s/%u -> ", addr_to_str(f->client->addr, f->client->ip_ver),
+         f->cli_port);
+    SAYF("%s/%u ]-\n", addr_to_str(f->server->addr, f->client->ip_ver),
+         f->srv_port);*/
+  }
   /*else
     start_observation(f->sendsyn ? "sendsyn response" : "syn+ack", 4, 0, f);*/
   
@@ -1186,6 +1197,7 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
             fp_os_names[m->name_id], m->flavor ? " " : "",
             m->flavor ? m->flavor : (u8*)"");*/
     if(!(m->class_id == -1 || f->sendsyn)){
+	    sprintf(os_name,"%s%s",fp_os_names[m->name_id],m->flavor ? m->flavor : (u8*)"");
 	    //SAYF("  %s %s\n",fp_os_names[m->name_id],m->flavor ? m->flavor : (u8*)"");
     }
 
@@ -1214,9 +1226,12 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
 
   //pkt_sig = dump_sig(pk, sig, f->syn_mss);
  
-  sprintf(pkt_sig,"src:%s dst:%s sig:%s\n",addr_to_str(pk->src, f->client->ip_ver),
-                    addr_to_str(pk->dst, f->client->ip_ver),
-		    dump_sig(pk, sig, f->syn_mss));
+  if(to_srv){
+	sprintf(srcIP,"%s",addr_to_str(f->client->addr, f->client->ip_ver));
+	sprintf(dstIP,"%s",addr_to_str(f->server->addr, f->client->ip_ver));
+  	sprintf(pkt_sig,"src %s:%u dst %s:%u sig %s os %s\n",
+			srcIP,f->cli_port,dstIP,f->srv_port,dump_sig(pk, sig, f->syn_mss),os_name);
+  }
 
   //SAYF("%s",pkt_sig);
 
@@ -1237,6 +1252,12 @@ struct tcp_sig* fingerprint_tcp(u8 to_srv, struct packet_data* pk,
 
   score_nat(to_srv, sig, f);
 
+  if(srcIP != NULL && dstIP != NULL){
+    free(srcIP);
+    free(dstIP);
+  }
+  if(os_name != NULL)
+	  free(os_name);
   return sig;
 
 }
