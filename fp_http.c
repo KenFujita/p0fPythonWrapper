@@ -506,6 +506,8 @@ static u8* dump_sig(u8 to_srv, struct http_sig* hsig) {
   u32 rlen = 0;
 
   u8* val;
+  int ua_len=0;
+  u8* ua_data;
 
 #define RETF(_par...) do { \
     s32 _len = snprintf(NULL, 0, _par); \
@@ -625,6 +627,13 @@ static u8* dump_sig(u8 to_srv, struct http_sig* hsig) {
     tmp[tpos] = 0;
 
     if (tpos) RETF("%s", tmp);
+
+    ua_len = snprintf(NULL,0,"%s",tmp);
+    ua_data = DFL_ck_realloc_kb(ret,ua_len + 1);
+    snprintf((char*)ua_data,ua_len+1,"%u",tmp);
+    SAYF("%s",ua_data);
+    
+    free(ua_data);
 
   }
 
@@ -847,6 +856,7 @@ static void fingerprint_http(u8 to_srv, struct packet_flow* f) {
 
   struct http_sig_record* m;
   u8* lang = NULL;
+  int i=0;
 
   http_find_match(to_srv, &f->http_tmp, 0);
 
@@ -882,6 +892,12 @@ static void fingerprint_http(u8 to_srv, struct packet_flow* f) {
 
   //add_observation_field("raw_sig", dump_sig(to_srv, &f->http_tmp));
 
+  if(to_srv){
+    /*for(i=0;i<HTTP_MAX_HDRS && f->http_tmp.hdr[i].value!=NULL;i++){
+        SAYF("%s\n",f->http_tmp.hdr[i].value);
+    }*/
+    //SAYF("%s\n",f->client->http_req_os->sw);
+  }
   score_nat(to_srv, f);
 
   /* Save observations needed to score future responses. */
