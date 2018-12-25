@@ -628,9 +628,9 @@ static u8* dump_sig(u8 to_srv, struct http_sig* hsig) {
 
     if (tpos) RETF("%s", tmp);
 
-   /* ua_len = snprintf(NULL,0,"%s",tmp);
+    /*ua_len = snprintf(NULL,0,"%s",tmp);
     ua_data = DFL_ck_realloc_kb(ret,ua_len + 1);
-    snprintf((char*)ua_data,ua_len+1,"%u",tmp);
+    snprintf((char*)ua_data,ua_len+1,"%s",tmp);
     SAYF("%s",ua_data);
     
     free(ua_data);*/
@@ -891,10 +891,10 @@ static void fingerprint_http(u8 to_srv, struct packet_flow* f) {
 
   //add_observation_field("params", dump_flags(&f->http_tmp, m));
 
-  //add_observation_field("raw_sig", dump_sig(to_srv, &f->http_tmp));
-  data = dump_sig(to_srv,&f->http_tmp);
-  if(data)
-    SAYF("%s\n",data);
+ // add_observation_field("raw_sig", dump_sig(to_srv, &f->http_tmp));
+  //data = dump_sig(to_srv,&f->http_tmp);
+  //if(data)
+    //SAYF("%s\n",data);
 
   if(to_srv){
     /*for(i=0;i<HTTP_MAX_HDRS && f->http_tmp.hdr[i].value!=NULL;i++){

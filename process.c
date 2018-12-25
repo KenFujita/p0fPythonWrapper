@@ -1159,7 +1159,7 @@ static void flow_dispatch(struct packet_data* pk) {
   u8 need_more = 0;
   char* fp_sig;
   char* request;
-  static char syn_data[256] = "\0";
+  static char syn_data[256] = "";
   int syn_len = 0;
 
   fp_sig = (char *)malloc(2048);
@@ -1218,8 +1218,9 @@ static void flow_dispatch(struct packet_data* pk) {
       }
 
       syn_len = strlen(fp_sig);
+      syn_data[0] = '\0';
       strncpy(syn_data,fp_sig,syn_len);
-      syn_data[syn_len+1] = '\0';
+      syn_data[syn_len] = '\0';
 
       break;
 
@@ -1296,7 +1297,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
        }
 
-       memset(syn_data,"\0",sizeof(syn_data));
+       memset(syn_data,'\0',sizeof(syn_data));
        break;
 
     case TCP_ACK:
@@ -1348,9 +1349,11 @@ static void flow_dispatch(struct packet_data* pk) {
         check_ts_tcp(1, pk, f);
 	f->next_cli_seq += pk->pay_len;
 
-	sprintf(fp_sig,"%s",syn_data);
-	SAYF("%s\n",fp_sig);
-	memset(syn_data,'\0',sizeof(syn_data));
+	if(syn_data && f->request){
+	  sprintf(fp_sig,"%s%s",syn_data,f->request);
+	  SAYF("%s\n",fp_sig);
+	  memset(syn_data,'\0',sizeof(syn_data));
+	}
 
       } else {
 
