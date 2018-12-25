@@ -1159,7 +1159,8 @@ static void flow_dispatch(struct packet_data* pk) {
   u8 need_more = 0;
   char* fp_sig;
   char* request;
-  static char syn_data[256] = "";
+  static char syn_data[256] = "\0";
+  int syn_len = 0;
 
   fp_sig = (char *)malloc(2048);
   if(fp_sig == NULL) return;
@@ -1216,7 +1217,9 @@ static void flow_dispatch(struct packet_data* pk) {
 
       }
 
-      strcpy(syn_data,fp_sig);
+      syn_len = strlen(fp_sig);
+      strncpy(syn_data,fp_sig,syn_len);
+      syn_data[syn_len+1] = '\0';
 
       break;
 
@@ -1343,13 +1346,11 @@ static void flow_dispatch(struct packet_data* pk) {
         }
 
         check_ts_tcp(1, pk, f);
+	f->next_cli_seq += pk->pay_len;
 
-        if(f->request != NULL)
-	  sprintf(fp_sig,"%s",syn_data/*,f->request*/);
-	  SAYF("%s\n",fp_sig);
-	  memset(syn_data,"\0",sizeof(syn_data));
-
-        f->next_cli_seq += pk->pay_len;
+	sprintf(fp_sig,"%s",syn_data);
+	SAYF("%s\n",fp_sig);
+	memset(syn_data,'\0',sizeof(syn_data));
 
       } else {
 
