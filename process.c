@@ -730,6 +730,7 @@ abort_options:
 
   }
 
+  //SAYF("src: %u dst: %u sport: %u dport: %u\n\n",pk.src,pk.dst,pk.sport,pk.dport);
   flow_dispatch(&pk);
 
 }
@@ -1153,8 +1154,17 @@ static void flow_dispatch(struct packet_data* pk) {
 
   struct packet_flow* f;
   struct tcp_sig* tsig;
+  struct tcp_sig* synack_tsig;
   u8 to_srv = 0;
   u8 need_more = 0;
+  char* fp_sig;
+  char* request;
+  static char syn_data[256] = "";
+  int syn_len = 0;
+
+  fp_sig = (char *)malloc(2048);
+  if(fp_sig == NULL) return;
+
 
   DEBUG("[#] Received TCP packet: %s/%u -> ",
         addr_to_str(pk->src, pk->ip_ver), pk->sport);
@@ -1181,7 +1191,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       f = create_flow_from_syn(pk);
 
-      tsig = fingerprint_tcp(1, pk, f);
+      tsig = fingerprint_tcp(1, pk, f,fp_sig);
 
       /* We don't want to do any further processing on generic non-OS
          signatures (e.g. NMap). The easiest way to guarantee that is to 
@@ -1194,7 +1204,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       }
 
-      fingerprint_mtu(1, pk, f);
+      //fingerprint_mtu(1, pk, f);
       check_ts_tcp(1, pk, f);
 
       if (tsig) {
@@ -1207,6 +1217,11 @@ static void flow_dispatch(struct packet_data* pk) {
 
       }
 
+      syn_len = strlen(fp_sig);
+      syn_data[0] = '\0';
+      strncpy(syn_data,fp_sig,syn_len);
+      syn_data[syn_len] = '\0';
+
       break;
 
     case TCP_SYN | TCP_ACK:
@@ -1218,11 +1233,11 @@ static void flow_dispatch(struct packet_data* pk) {
 
       }
 
-      /* This is about as far as we want to go with p0f-sendsyn. */
+      // This is about as far as we want to go with p0f-sendsyn. 
 
       if (f->sendsyn) {
 
-        fingerprint_tcp(0, pk, f);
+        fingerprint_tcp(0, pk, f,fp_sig);
         destroy_flow(f);
         return;
 
@@ -1248,18 +1263,19 @@ static void flow_dispatch(struct packet_data* pk) {
 
       f->acked = 1;
 
-      tsig = fingerprint_tcp(0, pk, f);
+      tsig = fingerprint_tcp(0, pk, f,fp_sig);
 
-      /* SYN from real OS, SYN+ACK from a client stack. Weird, but whatever. */
+      // SYN from real OS, SYN+ACK from a client stack. Weird, but whatever. 
 
+      //SAYF("%s\n",fp_sig);
       if (!tsig) {
 
         destroy_flow(f);
         return;
 
       }
-
-      fingerprint_mtu(0, pk, f);
+      
+      //fingerprint_mtu(0, pk, f);
       check_ts_tcp(0, pk, f);
 
       ck_free(f->server->last_synack);
@@ -1281,6 +1297,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
        }
 
+       memset(syn_data,'\0',sizeof(syn_data));
        break;
 
     case TCP_ACK:
@@ -1330,8 +1347,13 @@ static void flow_dispatch(struct packet_data* pk) {
         }
 
         check_ts_tcp(1, pk, f);
+	f->next_cli_seq += pk->pay_len;
 
-        f->next_cli_seq += pk->pay_len;
+	if(syn_data && f->request){
+	  sprintf(fp_sig,"%s%s",syn_data,f->request);
+	  SAYF("%s\n",fp_sig);
+	  memset(syn_data,'\0',sizeof(syn_data));
+	}
 
       } else {
 
@@ -1382,11 +1404,16 @@ static void flow_dispatch(struct packet_data* pk) {
       }
 
       break;
-
+    
     default:
 
       WARN("Huh. Unexpected packet type 0x%02x in flow_dispatch().", pk->tcp_type);
 
+  }
+
+  if(fp_sig != NULL){
+    //SAYF("%s",fp_sig);
+    free(fp_sig);
   }
 
 }
@@ -1430,7 +1457,7 @@ void add_nat_score(u8 to_srv, struct packet_flow* f, u16 reason, u8 score) {
 
   if (over_5 > 2 || over_2 > 4 || over_1 > 6 || over_0 > 8) {
 
-    start_observation("ip sharing", 2, to_srv, f);
+    //start_observation("ip sharing", 2, to_srv, f);
 
     reason = hd->nat_reasons;
 
@@ -1444,7 +1471,7 @@ void add_nat_score(u8 to_srv, struct packet_flow* f, u16 reason, u8 score) {
     /* Wait for something more substantial. */
     if (score == 1) return;
 
-    start_observation("host change", 2, to_srv, f);
+    //start_observation("host change", 2, to_srv, f);
 
     hd->last_chg = get_unix_time();
 
@@ -1473,9 +1500,9 @@ void add_nat_score(u8 to_srv, struct packet_flow* f, u16 reason, u8 score) {
 
 #undef REAF
 
-  add_observation_field("reason", rea[0] ? (rea + 1) : NULL);
+  //add_observation_field("reason", rea[0] ? (rea + 1) : NULL);
 
-  OBSERVF("raw_hits", "%u,%u,%u,%u", over_5, over_2, over_1, over_0);
+  //OBSERVF("raw_hits", "%u,%u,%u,%u", over_5, over_2, over_1, over_0);
 
 }
 
