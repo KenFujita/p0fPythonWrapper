@@ -14,7 +14,7 @@
 #include <pcap.h>
 #include <time.h>
 #include <ctype.h>
-#include <Python.c>
+#include <Python.h>
 
 #include <sys/fcntl.h>
 #include <netinet/in.h>
