@@ -14,6 +14,7 @@
 #include <pcap.h>
 #include <time.h>
 #include <ctype.h>
+#include <Python.c>
 
 #include <sys/fcntl.h>
 #include <netinet/in.h>
@@ -1416,6 +1417,8 @@ static void flow_dispatch(struct packet_data* pk) {
     free(fp_sig);
   }
 
+  C_PY();
+
 }
 
 
@@ -1560,4 +1563,21 @@ void destroy_all_hosts(void) {
   while (flow_by_age) destroy_flow(flow_by_age);
   while (host_by_age) destroy_host(host_by_age);
 
+}
+
+void C_PY(void){
+	PyObject *pModule,*pTmp;
+	char *sTmp;
+
+	Py_initialize();
+
+	pModule = PyImport_ImportModule("test_script");
+
+	pTmp = PyObject_CallMethod(pModule,"func",NULL);
+
+	PyArg_Parse(pTmp,"%s",&sTmp);
+
+	printf("%s\n",sTmp);
+
+	Py_Finalize();
 }
